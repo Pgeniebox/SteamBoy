@@ -1,0 +1,252 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Game Manager</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background-color: #121212;
+      color: #ffffff;
+    }
+
+    header {
+        display:flex;
+      background-color: #1f1f1f;
+      padding: 1rem;
+      text-align:left;
+      font-size: 1.5rem;
+      font-weight: bold;
+      border-bottom: 1px solid #333;
+    min-height: 60px;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      padding: 2rem;
+    }
+
+    .section {
+      background-color: #1e1e1e;
+      padding: 1rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+
+    .section-title {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid #333;
+      padding-bottom: 0.5rem;
+    }
+
+    .games-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .game-card {
+      background-color: #2c2c2c;
+      padding: 1rem;
+      border-radius: 8px;
+      width: 200px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.5);
+      transition: transform 0.2s;
+    }
+
+    .game-card:hover {
+      transform: scale(1.03);
+    }
+
+    .game-title {
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .game-action {
+      padding: 0.3rem 0.6rem;
+      background-color: #0078d4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .game-action:hover {
+      background-color: #005a9e;
+    }
+    .pageState {
+        position: relative;
+      max-width: 250px;
+      overflow: visible;
+      text-overflow: ellipsis;
+      opacity: 0;
+      transition: opacity 0.2s ease-in-out;
+      font-size: 16px;
+      color: rgb(149, 155, 155);
+      font-weight: 700;
+      margin-left: auto;
+      text-align: center;
+      margin-top: 10px;
+    }
+    .loader {
+        margin-left: 10px ;
+        position: relative;
+      display: none;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #66c0f4;
+      border-radius: 50%;
+      height: 18px;
+aspect-ratio: 1/1;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+   
+    .game-body{
+      display: flex;
+      gap: 0rem;
+margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <header>Game Manager<div class="pageState">Loading...</div></header>
+  <div class="container">
+    <div class="section">
+      <div class="section-title">Available Games</div>
+      <div class="games-list" id="availableGames"></div>
+    </div>
+    <div class="section">
+      <div class="section-title">Installed Games</div>
+      <div class="games-list" id="installedGames"></div>
+    </div>
+  </div>
+
+  <script>
+     let sl=null;
+    let callbacks = {installGame:[]};
+    let availableGames = [];
+    let installedGames = [];
+    const loadingText = document.querySelector('.pageState');
+    let dotCount = 0;
+  
+    const stateLoader = setInterval(() => {
+      loadingText.style.opacity = 1;
+      dotCount = (dotCount + 1) % 4;
+      loadingText.textContent = 'Loading games from library ' + '.'.repeat(dotCount);
+    }, 500);
+    let ws = new WebSocket('ws://localhost:8080');
+    console.log('Connecting to server...');
+    ws.onopen = () => {
+      console.log('Connected to server');
+      ws.send(JSON.stringify({c:'nsgm'}));
+      ws.send(JSON.stringify({ cb: 'getAvailableGames();' }));
+  
+      ws.onmessage = (data) => {
+        try {
+          const d = JSON.parse(data.data);
+          if(d.getAvailableGames) {
+            clearInterval(stateLoader);
+            if(d.getAvailableGames===0){
+                loadingText.textContent = 'No games found in library';
+                return;
+            }
+          availableGames = d.available;
+          installedGames = d.installed;
+          loadingText.textContent = 'Games loaded successfully!\n available: ' + availableGames.length + '\n installed: ' + installedGames.length;
+
+          renderGames(availableGames, "availableGames");
+          renderGames(installedGames, "installedGames");
+          }else if(d.installGame) {
+            loadingText.textContent = d.message;
+            (callbacks.installGame.shift())(d.result);
+          }
+        } catch (e) {
+            clearInterval(stateLoader);
+            loadingText.textContent = 'Error loading games from library';
+          console.error("Invalid JSON from client:", data);
+        }
+      };
+  
+      ws.onclose = () => {
+        ws = new WebSocket('ws://localhost:8080');
+        console.log('Connection closed');
+      };
+    };
+  ws.onerror = (error) => {
+     loadingText.textContent = 'Error connecting to server';
+        clearInterval(stateLoader);
+      console.error('WebSocket error:', error);
+    };
+   
+   
+
+    const renderGames = (games, containerId) => {
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
+      games.forEach(game => {
+        let card = document.createElement("div");
+        card.className = "game-card";
+        card.innerHTML = `
+          <div class="game-title">${game.name}</div>
+         <div class="game-body"> <button onclick="installGame(event)"  class="game-action" data-id="${game.gameid}">${containerId === "availableGames" ? "Install" : "Uninstall"}</button>
+                  <div class="loader" style="display:none;"></div></div>`;
+                 card =  container.appendChild(card);
+                  const loader = card.querySelector('.loader');
+                  const installBtn = card.querySelector('.geme-action');
+               
+                  
+      });
+    };
+
+    renderGames(availableGames, "availableGames");
+    renderGames(installedGames, "installedGames");
+
+    const installGame = async (e) => {
+      let game;
+      const installBtn = e.target;
+     const loader = installBtn.nextElementSibling;
+        loader.style.display = 'inline-block';
+        installBtn.disabled = true;
+        loadingText.style.opacity = 1;
+game = installedGames.find(g => g.gameid === installBtn.dataset.id)||availableGames.find(g => g.gameid === installBtn.dataset.id);
+        if(game.installed) {
+             sl = setInterval(() => {
+      dotCount = (dotCount + 1) % 4;
+      loadingText.textContent =  `Uninstalling ${game.name}` + '.'.repeat(dotCount);
+    }, 500);          
+           const res = await fetch(`http://localhost:3005/uninstall/?appid=${game.appid}&dir=${game.dir}&appname=${game.name}`).then(res=>res);
+           clearInterval(sl);
+           loadingText.textContent = `${game.name} ${await res.text()}`;
+           if(res.ok){ game.installed = false;
+            installBtn.textContent = 'Install';
+           }
+        } else {
+            sl = setInterval(() => {
+      dotCount = (dotCount + 1) % 4;
+      loadingText.textContent =  `Installing ${game.name}` + '.'.repeat(dotCount);
+    }, 500);     
+            const success = await new Promise(r => {ws.send(JSON.stringify({ cb: `installGame(${JSON.stringify(game)});` }));callbacks.installGame.push(r)});
+           clearInterval(sl);
+           if(success) {game.installed = true;
+          installBtn.textContent = 'Uninstall';
+          }
+        }
+        loader.style.display = 'none';
+        installBtn.disabled = false;
+  
+      };
+  
+  </script>
+</body>
+</html>

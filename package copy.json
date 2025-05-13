@@ -1,0 +1,40 @@
+{
+ "name": "steamboy",
+  "version": "1.0.0",
+  "description": "Non steam games hero!",
+  "icon": "icon.ico",
+  "main": "main.js",
+  "scripts": {
+  "start": "electron .",
+  "build": "electron-builder"
+}
+,
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "node-tray": "^1.0.6",
+    "node-window-manager": "^2.2.4",
+    "puppeteer": "^24.8.2",
+    "robotjs": "^0.6.0",
+    "ws": "^8.18.2"
+  },
+  "devDependencies": {
+    "electron": "^36.2.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+  "asar": true,
+  "files": [
+    "**/*",
+    "!**/server.js"
+  ],
+  "extraFiles": [
+    {
+      "from": "server.js",
+      "to": "app/server.js"
+    }
+  ]
+}
+
+}
