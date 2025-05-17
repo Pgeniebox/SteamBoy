@@ -1,3 +1,7 @@
+See details in this video ----
+------------------------------> https://www.youtube.com/watch?v=59eJTwkKah4
+
+
 # Non-steam-games-manager
 
 - 👋 Hi, I’m @Pgeniebox
