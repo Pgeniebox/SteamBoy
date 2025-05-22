@@ -35,21 +35,6 @@ SteamOS provides a beautiful, console-like experience — but non-Steam games ar
 I built this program to close the gap. After deep reverse-engineering and system integration, this tool gives non-Steam games parity with official Steam titles.
 
 
-Roadmap
-
-[x] Metadata injection
-
-[x] Steam event integration
-
-[x] Achievements & tracking
-
-[x] Gamepad-friendly UI
-
-[ ] Community preset sharing
-
-[ ] Native .desktop import support
-
-
 Contributing
 
 I built this from scratch with care and precision. Contributions, bug reports, and feature suggestions are welcome — but please respect the vision: non-Steam should feel native.
