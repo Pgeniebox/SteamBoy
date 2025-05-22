@@ -1,0 +1,473 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Game Manager</title>
+  <style>
+    html, body {
+      height: 100vh;
+      width: 100vw;
+    }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background-color: #121212;
+      color: #ffffff;
+    }
+
+    header {
+        display:flex;
+      background-color: #1f1f1f;
+      padding: 1rem;
+      text-align:left;
+      font-size: 1.5rem;
+      font-weight: bold;
+      border-bottom: 1px solid #333;
+    min-height: 60px;
+    gap: 20px;
+    }
+   .title{
+     margin-left: 10px;
+    min-width: max-content;
+   }
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      padding: 2rem;
+    }
+
+    .section {
+      background-color: #1e1e1e;
+      padding: 1rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+
+    .section-title {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid #333;
+      padding-bottom: 0.5rem;
+    }
+
+    .games-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .game-card {
+      background-color: #2c2c2c;
+      padding: 1rem;
+      border-radius: 8px;
+      width: 200px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.5);
+      transition: transform 0.2s;
+    }
+
+    .game-card:hover {
+      transform: scale(1.03);
+    }
+
+    .game-title {
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    button {
+      padding: 0.3rem 0.6rem;
+      background-color: #0078d4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #005a9e;
+    }
+    .pageState {
+  min-width: 100%;
+  position: relative;
+  overflow: visible;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  font-size: 16px;
+  color: rgb(149, 155, 155);
+  font-weight: 700;
+  margin-left: auto;
+  text-align: center;
+  margin-top: 10px;
+  white-space: nowrap;
+}
+.loaderLayout{
+  
+    left: 0;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  display: none;
+align-items: center;
+  justify-content: center;
+  background-color: rgba(0,0,0,0.4);
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+
+}
+.loaderLayout.show{
+  display: flex;
+  z-index: 100;
+}
+    .loaderLayout.show .loader{
+      animation: spin 1s linear infinite;
+    }
+    .loader {
+        position: relative;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #66c0f4;
+      border-radius: 50%;
+      height: 18px;
+aspect-ratio: 1/1;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+   
+    .game-body{
+      display: flex;
+      gap: 0.5rem;
+margin-top: 2rem;
+    }
+    .libload{
+      max-width: fit-content;
+      padding: 0.6rem 0.6rem;
+      height: max-content;
+      margin-left: auto;
+      background-color: #0078d4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .settingsLayout {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: none;
+    background-color: rgba(0, 0, 0, 0.4);
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+    z-index: 1;
+    left: 0;
+}
+
+.settingsLayout.show {
+  display: block;
+}
+
+.settingsTable {
+  position: sticky;
+  background-color: #35353566;
+  padding: 1rem;
+  border-radius: 10px;
+  width: fit-content;
+  color: white;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: blur(5px);
+
+  backdrop-filter: blur(5px);
+}
+
+*{
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+  </style>
+</head>
+<body>
+  <header><div class="title">Game Manager</div><button class="libload">Refresh</button></header>
+  <div class="pageState">Loading...</div>
+  <div class="container">
+    <div class="loaderLayout"><div class="loader" style="display:block;"></div></div>
+
+    <div class="settingsLayout">
+      <div class="settingsTable">
+      </div>
+    </div>
+    <script>
+     const tab = document.querySelector('.settingsTable');
+let isDragging = false;
+let offsetX = 0;
+let offsetY = 0;
+
+tab.addEventListener('mousedown', (e) => {
+  isDragging = true;
+  offsetX = e.clientX - tab.offsetLeft;
+  offsetY = e.clientY - tab.offsetTop;
+  tab.style.cursor = 'move';
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+  let left = e.clientX - offsetX;
+  let top = e.clientY - offsetY;
+
+  // Prevent going out of screen bounds
+  const maxLeft = window.innerWidth - tab.offsetWidth;
+  const maxTop = window.innerHeight - tab.offsetHeight;
+
+  if (left < 0) left = 0;
+  if (top < 0) top = 0;
+  if (left > maxLeft) left = maxLeft;
+  if (top > maxTop) top = maxTop;
+
+  tab.style.left = `${left}px`;
+  tab.style.top = `${top}px`;
+});
+
+document.addEventListener('mouseup', () => {
+  isDragging = false;
+  tab.style.cursor = 'default';
+});
+
+      function closeSettings() {
+        const tab = document.querySelector('.settingsTable');
+        tab.innerHTML = '';
+        tab.dataset.game = '';
+        tab.style.left = '0px';
+        tab.style.top = '0px';
+        tab.style.display = 'none';
+        document.querySelector('.settingsLayout').classList.remove('show');
+      }
+     async function openSettings(e) {
+        const layout = document.querySelector('.settingsLayout');
+        let game;
+switch (e.type){
+  case 'fixDetails':
+  const g = JSON.parse(tab.dataset.game);
+  
+  const stateLoader = setInterval(() => {
+      loadingText.style.opacity = 1;
+      dotCount = (dotCount + 1) % 4;
+      loadingText.textContent = `Fixing ${g.name} details`+'.'.repeat(dotCount);
+    }, 500);
+    closeSettings();
+    loadingLayout.classList.add('show');
+    const fixDetails = await fetch(`http://localhost:3005/fixGameDetails/?appid=${e.appid}`).then(res=>res).catch(err=>err);
+    if(!fixDetails.ok){
+      loadingText.textContent = `Error fixing ${g.name} details: Network error`;
+      clearInterval(stateLoader);
+    }else{
+
+    loadingText.textContent = `${g.name}: ${await fixDetails.text()}`;
+  }
+    clearInterval(stateLoader);
+    loadingLayout.classList.remove('show');
+    openSettings({type:'click',target:{dataset:{game:JSON.stringify(g)}}});
+break;
+  case 'details':
+    game = JSON.parse(tab.dataset.game);
+    tab.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h2 style="margin: 0; color: #ffffff;">Game Details</h2>
+<button onclick="openSettings(event)" style="margin-left: 1rem;background-color: #0078d4;color: white;border: none;border-radius: 4px;padding: 0.3rem 0.6rem;cursor: pointer;">Back</button>        </div>
+      ${Object.entries(game).map(([key, value]) => 
+        `<div style="color: white;">${key.charAt(0).toUpperCase() + key.slice(1)}: ${value}</div>`
+      ).join('')}
+      `;
+break;
+  case 'click':
+    const gameD =tab.dataset?.game? JSON.parse(tab.dataset.game) : JSON.parse(e.target.dataset.game);
+   tab.innerHTML = ` <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h2 style="margin: 0; color: #ffffff;">${gameD.name}</h2>
+          <button onclick="closeSettings()" style="margin-left: 1rem;background-color: #dd5f5fd3; color: white; border: none; border-radius: 4px; padding: 0.3rem 0.6rem; cursor: pointer;">Close</button>
+        </div>
+        <div style="margin-bottom: 1rem;gap: 0.5rem;display: grid;">
+          <button id="exampleOption" onclick="openSettings({type: 'details'})" style="width: 100%; background-color: #31373b70; color: white; border: none; border-radius: 4px; padding: 0.3rem 0.6rem; cursor: pointer;">Details</button>
+          <button id="exampleOption" onclick="openSettings({type: 'fixDetails',appid:${gameD.appid}});" style="width: 100%; background-color: #31373b70; color: white; border: none; border-radius: 4px; padding: 0.3rem 0.6rem; cursor: pointer;">Fix Game Details & Achievements</button>
+          </div>`;
+       
+if(!layout.classList.contains('show')){
+  tab.dataset.game = e.target.dataset.game;
+  layout.classList.add('show');
+
+  // Temporarily show to measure size
+  tab.style.display = 'block';
+  tab.style.visibility = 'hidden';
+
+  const tabWidth = tab.offsetWidth;
+  const tabHeight = tab.offsetHeight;
+  const screenW = window.innerWidth;
+  const screenH = window.innerHeight;
+
+  let left = e.clientX;
+  let top = e.clientY;
+
+  if (left + tabWidth > screenW) left = screenW - tabWidth - 10;
+  if (top + tabHeight > screenH) top = screenH - tabHeight - 10;
+
+  tab.style.left = `${left}px`;
+  tab.style.top = `${top}px`;
+
+  tab.style.visibility = 'visible';
+
+}
+break;
+      }
+}
+
+
+
+    </script> 
+
+    <div class="section">
+      <div class="section-title">Available Games</div>
+      <div class="games-list" id="availableGames"></div>
+    </div>
+    <div class="section">
+      <div class="section-title">Installed Games</div>
+      <div class="games-list" id="installedGames"></div>
+    </div>
+  </div>
+
+  <script>
+     let sl=null;
+    let callbacks = {installGame:[]};
+    let availableGames = [];
+    let installedGames = [];
+    const loadingText = document.querySelector('.pageState');
+    let dotCount = 0;
+    const loadingLayout = document.querySelector('.loaderLayout');
+    const stateLoader = setInterval(() => {
+      loadingText.style.opacity = 1;
+      dotCount = (dotCount + 1) % 4;
+      loadingText.textContent = 'Loading games from library ' + '.'.repeat(dotCount);
+    }, 500);
+    let ws = new WebSocket('ws://localhost:8080');
+    console.log('Connecting to server...');
+    ws.onopen = () => {
+      console.log('Connected to server');
+      ws.send(JSON.stringify({c:'nsgm'}));
+      ws.send(JSON.stringify({ cb: 'getAvailableGames();' }));
+  
+      ws.onmessage = (data) => {
+        try {
+          const d = JSON.parse(data.data);
+          if(d.getAvailableGames) {
+            clearInterval(stateLoader);
+            if(d.getAvailableGames===0){
+                loadingText.textContent = 'No games found in library';
+                return;
+            }
+          availableGames = d.available;
+          installedGames = d.installed;
+          loadingText.textContent = 'Games loaded successfully!\n available: ' + availableGames.length + '\n installed: ' + installedGames.length;
+
+          renderGames(availableGames, "availableGames");
+          renderGames(installedGames, "installedGames");
+          }else if(d.installGame) {
+            loadingText.textContent = d.message;
+            (callbacks.installGame.shift())(d.result);
+          }
+        } catch (e) {
+            clearInterval(stateLoader);
+            loadingText.textContent = 'Error loading games from library';
+          console.error("Invalid JSON from client:", data);
+        }
+      };
+  
+      ws.onclose = () => {
+        ws = new WebSocket('ws://localhost:8080');
+        console.log('Connection closed');
+      };
+    };
+  ws.onerror = (error) => {
+     loadingText.textContent = 'Error connecting to server';
+        clearInterval(stateLoader);
+      console.error('WebSocket error:', error);
+    };
+   
+   
+
+    const renderGames = (games, containerId) => {
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
+      games.forEach(game => {
+        let card = document.createElement("div");
+        card.className = "game-card";
+        card.innerHTML = `
+          <div class="game-title">${game.name}</div>
+         <div class="game-body"> <button onclick="installGame(event)"  class="game-action" data-id="${game.gameid}">${containerId === "availableGames" ? "Install" : "Uninstall"}</button>
+                  <button class="game-action" id="settings" onclick="openSettings(event)" >Settings</button>
+          </div>`;
+                 card =  container.appendChild(card);
+                 const settingsBtn = card.querySelector("#settings");
+    settingsBtn.dataset.game = JSON.stringify(game);                                  
+      });
+    };
+    ///installedGames = [{ name: "Counter-Strike: Global Offensive", appid: "730", dir: "csgo", installed: true, gameid: "730",achievements:['achievements 1','achievements 2' ]},{ name: "Dota 2", appid: "570", dir: "dota2", installed: true, gameid: "570",achievements:['achievements 1','achievements 2' ]},{ name: "Team Fortress 2", appid: "440", dir: "tf2", installed: true, gameid: "440",achievements:['achievements 1','achievements 2' ]}];
+    renderGames(availableGames, "availableGames");
+    renderGames(installedGames, "installedGames");
+
+
+    const installGame = async (e) => {
+      let game;
+      const installBtn = e.target;
+        installBtn.disabled = true;
+        loadingLayout.classList.add('show');
+        loadingText.style.opacity = 1;
+game = installedGames.find(g => g.gameid === installBtn.dataset.id)||availableGames.find(g => g.gameid === installBtn.dataset.id);
+        if(game.installed) {
+             sl = setInterval(() => {
+      dotCount = (dotCount + 1) % 4;
+      loadingText.textContent =  `Uninstalling ${game.name}` + '.'.repeat(dotCount);
+    }, 500);          
+           const res = await fetch(`http://localhost:3005/uninstall/?appid=${game.appid}&dir=${game.dir}&appname=${game.name}`).then(res=>res);
+           clearInterval(sl);
+           loadingText.textContent = `${game.name} ${await res.text()}`;
+           if(res.ok){ 
+            game.installed = false;
+            installBtn.textContent = 'Install';
+            availableGames.push(game);
+            installedGames = installedGames.filter(g => g.gameid !== game.gameid);
+           }
+        } else {
+            sl = setInterval(() => {
+      dotCount = (dotCount + 1) % 4;
+      loadingText.textContent =  `Installing ${game.name}` + '.'.repeat(dotCount);
+    }, 500);     
+            const success = await new Promise(r => {ws.send(JSON.stringify({ cb: `installGame(${JSON.stringify(game)});` }));callbacks.installGame.push(r)});
+           clearInterval(sl);
+           if(success) {
+            game.installed = true;
+          installBtn.textContent = 'Uninstall';
+          installedGames.push(game);
+          availableGames = availableGames.filter(g => g.gameid !== game.gameid);
+
+          }
+        }
+       loadingLayout.classList.remove('show');
+        installBtn.disabled = false;
+        renderGames(availableGames, "availableGames");
+        renderGames(installedGames, "installedGames");
+      };
+  
+      document.querySelector('.libload').addEventListener('click', () => {
+        ws.send(JSON.stringify({ cb: 'getAvailableGames();' }));
+      });
+      document.addEventListener('clickl',(e)=>{
+if(e.target.classList.contains('#settings')){
+  installedGames.find(g => g.gameid === e.target.dataset.id);
+  
+}
+      });
+  </script>
+</body>
+</html>

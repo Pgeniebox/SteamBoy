@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Steam+</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white h-screen overflow-hidden">
+
+  <!-- Title bar -->
+  <div class="flex justify-between items-center px-4 py-2 bg-gray-800 text-white">
+    <div class="text-lg font-semibold">Steam+</div>
+    <div class="flex space-x-2">
+      <button onclick="window.api.minimize()" class="px-2">–</button>
+      <button onclick="window.api.close()" class="px-2">×</button>
+    </div>
+  </div>
+
+  <!-- App content -->
+  <div id="app" class="w-full max-w-md p-6 mx-auto rounded-2xl bg-gray-800 shadow-xl text-center space-y-6 transition-all duration-500 mt-10">
+
+    <!-- Step 1: Intro -->
+    <div id="step-info" class="space-y-4">
+      <h1 class="text-2xl font-bold text-green-400">Welcome to Steam+</h1>
+      <p class="text-gray-300">
+        Steam+ starts automatically with Steam and shuts down when Steam does.
+        It runs silently in the Windows system tray and manages your non-Steam games.
+      </p>
+      <p class="text-gray-400">
+        To access the game manager, open Steam+ from the tray icon.
+      </p>
+      <button onclick="startSetup()" class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-xl text-white font-semibold">
+        Continue to Steam+ Configuration
+      </button>
+    </div>
+
+    <!-- Step 2: Loading -->
+    <div id="step-loading" class="hidden space-y-4">
+      <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500 mx-auto"></div>
+      <p>Configuring Steam+...</p>
+    </div>
+
+    <!-- Step 3: Steam will close -->
+    <div id="step-restart" class="hidden space-y-4">
+      <h2 class="text-xl font-semibold">Almost Done</h2>
+      <p>Steam <span class="text-yellow-400 font-bold">will close</span> to complete setup.</p>
+      <button onclick="completeInstall()" class="bg-green-600 hover:bg-green-700 px-6 py-2 rounded-xl text-white font-semibold">
+        Finish Setup
+      </button>
+    </div>
+
+    <!-- Step 4: Done -->
+    <div id="step-done" class="hidden space-y-4">
+      <h2 class="text-2xl font-bold text-green-400">✔ Steam+ is Ready</h2>
+      <p>Steam+ will now manage your games automatically.</p>
+      <button onclick="runSteam()" class="bg-green-600 hover:bg-green-700 px-6 py-2 rounded-xl text-white font-semibold">
+        Start Steam
+      </button>
+    </div>
+
+    <!-- Step 5: Error -->
+    <div id="step-error" class="hidden space-y-4 text-red-400">
+      <h2 class="text-xl font-bold">✖ Setup Failed</h2>
+      <p id="error-message">An unknown error occurred.</p>
+      <button onclick="showStep('step-info')" class="bg-gray-700 hover:bg-gray-600 px-6 py-2 rounded-xl text-white font-semibold">
+        Back
+      </button>
+    </div>
+  </div>
+
+  <!-- JS Logic -->
+  <script>
+    async function startSetup() {
+      showStep("step-loading");
+      const state = await window.api.setupManager();
+      if (!state) {
+        return showStep("step-restart");
+      }
+      return showStep("step-error", state);
+    }
+
+    async function completeInstall() {
+      await window.api.closeSteam();
+      showStep("step-done");
+    }
+
+    async function runSteam() {
+      await window.api.runSteam();
+    }
+
+    function showStep(stepId, message = '') {
+      const steps = ["step-info", "step-loading", "step-restart", "step-done", "step-error"];
+      steps.forEach(id => {
+        document.getElementById(id).classList.toggle("hidden", id !== stepId);
+      });
+
+      if (stepId === "step-error" && message) {
+        document.getElementById("error-message").textContent = message;
+      }
+    }
+  </script>
+</body>
+</html>
