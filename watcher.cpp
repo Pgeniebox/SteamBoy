@@ -87,19 +87,24 @@ Napi::Value StartWatching(const Napi::CallbackInfo& info) {
 }
 
 Napi::Value StopWatching(const Napi::CallbackInfo& info) {
+    if (!watching) {
+        return info.Env().Undefined();
+    }
+
     watching = false;
 
-    std::thread([=]() {
-        if (watcherThread.joinable()) {
-            watcherThread.join();
-        }
-        if (tsfn) {
-            tsfn.Release();
-        }
-    }).detach();
+    if (watcherThread.joinable()) {
+        watcherThread.join();
+    }
+
+    if (tsfn) {
+        tsfn.Release();
+        tsfn = nullptr;
+    }
 
     return info.Env().Undefined();
 }
+
 
 
 Napi::Object Init(Napi::Env env, Napi::Object exports) {

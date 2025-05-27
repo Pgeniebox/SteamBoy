@@ -1,6 +1,6 @@
 {
   "name": "steam-plus",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Non steam games hero!",
   "icon": "icon.ico",
   "type": "commonjs",
@@ -16,6 +16,7 @@
     "node-addon-api": "^8.3.1",
     "node-gyp": "^11.2.0",
     "node-tray": "^1.0.6",
+    
     "node-window-manager": "^2.2.4",
     "puppeteer": "^24.8.2",
     "robotjs": "^0.6.0",

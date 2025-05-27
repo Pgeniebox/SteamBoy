@@ -1,10 +1,16 @@
 let ws; 
 
 
-function waitForServerAndConnect() {
+ function waitForServerAndConnect() {
+
   fetch('http://localhost:3005/checkServer')
-    .then(res => {
+    .then(async res => {
+      
       if (res.ok) {
+        const switchUi = await SteamClient.Storage.GetString('uiMode').catch(()=>undefined);
+      if(!switchUi?.result&&switchUi==='4'){
+        await SteamClient.Storage.SetString('uiMode', '7').catch(()=>undefined);
+        SteamClient.UI.SetUIMode(4);return;}
         ws = new WebSocket('ws://localhost:8080');
 
         ws.onopen = () => {
@@ -33,22 +39,39 @@ function waitForServerAndConnect() {
               } else {
                 console.log('Server not available, retrying...');
       console.log('Waiting for server...');
-      const olh = location.href;
-      location.href = 'steam+://';
-      location.href = olh;
-      setTimeout(waitForServerAndConnect, 5000);
+      const uiMode = await SteamClient.UI.GetUIMode();
+ if(uiMode===4){
+  await SteamClient.Storage.SetString('uiMode', '4').catch(()=>undefined);
+  SteamClient.UI.SetUIMode(7);
+}else{
+  const olh = location.href;
+  location.href = 'steam+://';
+  setTimeout(async()=>{location.href = olh;
+    ///waitForServerAndConnect();
+  }, 2000);  
+}
         
       }
     })
-    .catch(() => {
+    .catch(async() => {
       console.log('Server not available, retrying...');
       console.log('Waiting for server...');
-      const olh = location.href;
-      location.href = 'steam+://';
-      location.href = olh;
-      setTimeout(waitForServerAndConnect, 5000);    });
+      const uiMode = await SteamClient.UI.GetUIMode();
+ if(uiMode===4){
+  await SteamClient.Storage.SetString('uiMode', '4').catch(()=>undefined);
+  SteamClient.UI.SetUIMode(7);
+}else{
+  const olh = location.href;
+  location.href = 'steam+://';
+  setTimeout(async()=>{location.href = olh;
+    ///waitForServerAndConnect();
+  }, 2000);  
+}
+
+       });
 }
 waitForServerAndConnect();
+
 async function getAvailableGames() {
   const apps =typeof this.collectionStore!=='undefined'?this.collectionStore.appTypeCollectionMap.get('type-games'):null;
   const sc =typeof SteamClient!=='undefined'? SteamClient:null;
@@ -93,7 +116,7 @@ async function getAvailableGames() {
 
 async function installGame(g) {
   let installedGame = await SteamClient.Storage.GetString('installedGames').catch(undefined => undefined) || '[]';
-  installedGame = JSON.parse(installedGame);
+  installedGame = installedGame.length? JSON.parse(installedGame):[];
   let searchResult = await searchstore.FetchSearchSuggestions(g.name, undefined);
   if (searchResult.total === 0) {
     const dirName = g.dir.split("\\").slice(-2, -1)[0];
@@ -230,6 +253,7 @@ const a=appStore.GetAppOverviewByAppID(args[0])||null;
 
 a?a.per_client_data[0].display_status = a.per_client_data[0].display_status === 31?11:a.per_client_data[0].display_status:null;
 
+
          
     }
     
@@ -266,6 +290,7 @@ const amuI = setInterval(()=>{
 
  if(amu&&adt){
   clearInterval(amuI);
+  console.log('Connected to server');
   //NotificationStore.TestAchievement(2114740);
   ///getAvailableGames();
   appStore.m_mapApps.updateValue_ =async function (...args) {
@@ -334,7 +359,7 @@ const amuI = setInterval(()=>{
           args[0].details.bIsFreeApp = true;
     
           const a = appStore.GetAppOverviewByAppID(args[0].details.unAppID);
-          a.per_client_data[0].display_status = a.per_client_data[0].display_status === 31 ? 11 : a.per_client_data[0].display_status;
+          ///a.per_client_data[0].display_status = a.per_client_data[0].display_status === 31 ? 11 : a.per_client_data[0].display_status;
           a.m_gameid = j.gameid;
          a.gameid = j.gameid;
           a.GetGameID=()=>j.gameid;
@@ -353,15 +378,16 @@ const amuI = setInterval(()=>{
 const TerminateApp= SteamClient.Apps.TerminateApp;
 SteamClient.Apps.TerminateApp = async function (...args) {
     const e = await SteamClient.Storage.GetString(args[0]).catch(undefined=>undefined)||null;
-    if(e&&!e.result){
-      ws.send(JSON.stringify({ c: 'unwatch'}));
-      args[0]=e;history.back();};
+    if(e&&!e.result){args[0]=e;
+      console.log(args);
+     setTimeout(()=>{ ws.send(JSON.stringify({ c: 'unwatch'}));},5000);
+      history.back();};
         return TerminateApp.apply(this, args);
     }
 
     const runG = SteamClient.Apps.RunGame;
     SteamClient.Apps.RunGame =  function (...args) {
-      console.log(args);
+      //console.log(args);
       setTimeout(async()=>{
         const e = await SteamClient.Storage.GetString(args[0]).catch(undefined=>undefined)||null;
         if(e&&!e.result){
@@ -389,7 +415,7 @@ SteamClient.Apps.TerminateApp = async function (...args) {
               `);}catch(e){console.log(e)}
                 if(overlayWindow?.showAchievement){
               clearInterval(int);
-                   console.log(overlayWindow.showAchievement);}
+                   }
                   ///overlayWindow.eval(uis);
               } else {
 
@@ -426,12 +452,11 @@ SteamClient.Apps.TerminateApp = async function (...args) {
             g.strName,
             g.strDescription
           );
-      
-          appDetailsStore.AppDetailsChanged(appDetailsStore.GetAppDetails(Number(a.appid)));
-          await delay(5000);
+          Ach?.LoadMyAchievements(Number(a.appid));
+        //await delay(5000);
           SteamClient.Overlay.SetOverlayState(j.gameid,0);
          setTimeout(()=>{ vg.document.body.children[0].style.display = 'block';},3000);
-
+         
             });
           }
         }

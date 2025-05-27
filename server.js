@@ -150,6 +150,10 @@ app.get('/NSGM', (req, res) => {
 });
 
 app.get('/checkServer',(req,res)=>{
+if(clients.steam && clients.steam.readyState === WebSocket.OPEN){
+  clients.steam.close();
+  clients.steam = null;
+}  
   res.send('true');
 });
 
