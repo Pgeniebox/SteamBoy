@@ -609,30 +609,35 @@ wss.on('connection', function connection(ws) {
       watchObj.appid = appid;
       watchObj.watchLocked = true;
       const appData = process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming');
-      const filePath = path.join(appData, 'Goldberg SteamEmu Saves', appid, 'achievements.json');
-  
-      fs.readFile(filePath, 'utf8', (err, data) => {
-        if (err) {
-          log("Failed to read achievements file:", err);
-          return;
-        }
-  
-        let of = JSON.parse(data);
-  
-        const dir = path.dirname(filePath);
-        const filename = path.basename(filePath);
-        watcher.watchFile(dir,filename, (filename) => {
-          fs.readFile(filePath, 'utf8', (err, data) => {
-            if (err) return;
-  
-            const cf = JSON.parse(data);
-            const changed = JSON.stringify({appid: appid, changed: Object.entries(cf).filter(
+      const filePath = path.join(appData, 'Goldberg SteamEmu Saves', appid);
+      let of = {};
+      if (fs.existsSync(path.join(filePath,'achievements.json'))) {
+        try{
+          of = JSON.parse(fs.readFileSync(path.join(filePath, 'achievements.json'), 'utf8'));
+          log(`Loaded existing achievements for ${appid}`);}catch(e){
+          log(`Failed to load existing achievements for ${appid}:`, e.message);
+          of = {};
+          }
+      }
+
+      watcher.watchFile(filePath, 'achievements.json', (event) => {
+        if(event.event==='created'){
+          try{
+          of = JSON.parse(event.content);
+          log(`New achievements file created for ${appid}`);}catch(e){
+          log(`Failed to parse new achievements file for ${appid}:`, e.message);}
+        }else if(event.event==='modified'){
+          log(`Achievements file modified for ${appid}`);
+          try{
+          const cf = JSON.parse(event.content);
+          const changed = JSON.stringify({appid: appid, changed: Object.entries(cf).filter(
               key => key[1].earned !== of[key[0]].earned
             )});
-            of = cf;
-            clients?.steam?.send(JSON.stringify({ cb: `updateAch(${changed})` }));
-          });
-        });
+          of = cf;
+          clients?.steam?.send(JSON.stringify({ cb: `updateAch(${changed})` }));}catch(e){
+          log(`Failed to parse modified achievements file for ${appid}:`, e.message);
+          }
+        }
       });
   
       return;
@@ -641,7 +646,9 @@ wss.on('connection', function connection(ws) {
     if (m.c === 'unwatch') {
       log('Unwatching for changes');
 
-    try{  watcher.stopWatching();}catch(e){
+    try{  watcher.stopWatching();
+watchObj.appid = null;watchObj.watchLocked = false;
+    }catch(e){
       log('Failed to stop watching:', e);}
       return;
     }

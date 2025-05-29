@@ -453,8 +453,10 @@ SteamClient.Apps.TerminateApp = async function (...args) {
             g.strDescription
           );
           Ach?.LoadMyAchievements(Number(a.appid));
-        //await delay(5000);
+
+        await delay(5000);
           SteamClient.Overlay.SetOverlayState(j.gameid,0);
+          
          setTimeout(()=>{ vg.document.body.children[0].style.display = 'block';},3000);
          
             });
